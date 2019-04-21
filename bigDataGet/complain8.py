@@ -1,9 +1,11 @@
 import re
 import requests
 from lxml import etree
-from bigDataGet.log_decorator import Logger
-from bigDataGet.connection import conns, redis_get, redis_set
-from bigDataGet.public import get_parse
+from complain.log_decorator import Logger
+from complain.connection import conns, redis_get, set_url
+from complain.public import get_parse
+from complain import config
+
 log = Logger()
 
 def get_post_url(url, pstart, brid):
@@ -36,14 +38,20 @@ def get_content(html):
     data['brand'] = item.xpath("//div[@class='content-info']/p[2]/text()")[0].split('：')[1]
     data['car_series'] = item.xpath("//div[@class='content-info']/p[3]/text()")[0].split('：')[1]
     data['car_type'] = item.xpath("//div[@class='content-info']/p[4]/text()")[0].split('：')[1]
-    data['car_describe'] = ''.join(i.strip() for i in item.xpath("//div[@class='content']/p[2]/text()"))
+    s = ''.join(i.strip() for i in item.xpath("//div[@class='content']/p[2]/text()"))
+    if s:
+        data['car_describe'] = s[:1200]
+    else:
+        data['car_describe'] = ''
     data['car_question'] = ''.join(i.strip() for i in item.xpath("//div[@class='post-heading']/h6/text()"))
     data['start_time'] = item.xpath("//div[@class='content-info']/p[5]/text()")[0].split('：')[1]
-    # print(data)
+    data['status'] = ''.join( i.strip() for i in item.xpath("//div[@class='post-status']/p[@class='heading']/span/text()"))
+    data['source'] = '汽车门网'
+    print(data)
     return data
 
 def main():
-    brid_list = [10015,10016,10017,10018,10019]
+    brid_list = config.QCM_ARGS
     url = "https://www.qichemen.com/complain.html"
     for brid in brid_list:
         pstart = 0
@@ -74,8 +82,8 @@ def main():
                         log.info('此链接已抓取过')
                         break
                 if data_list:
-                #     conns(data_list)
-                #     redis_set(url_list)
+                    conns(data_list)
+                    set_url(url_list)
                     print(data_list)
                 pstart += 1
             else:

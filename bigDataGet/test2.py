@@ -1,33 +1,47 @@
-import requests
-from bigDataGet.log_decorator import Logger
-log = Logger()
 
-def get_post_url(url, pstart, brid):
-    data = {
-        'pstart': pstart,
-        'name': 'brid',
-        'brid': brid
-    }
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36',
-    }
-    response = requests.post(url, headers=headers, data=data)
-    if response.status_code == 200:
-        # print('response:', response.text)
-        return response.text
-    else:
-        return None
+import multiprocessing
+import time
 
-brid_list = [10016, 10015]
-url = "https://www.qichemen.com/1complain.html"
-for brid in brid_list:
-    pstart = 0
-    log.info('完成一页')
-    while 1:
-        log.info('pstart:%s'%pstart)
-        print('pstart',pstart)
-        try:
-            html = get_post_url(url, pstart, brid)
-        except Exception as e:
-            log.error(e)
-        pstart += 1
+def write_queue(queue):
+    # 循环写入数据
+    for i in range(10):
+        if queue.full():
+            print("队列已满!")
+            break
+        # 向队列中放入消息
+        queue.put(demo(i,i))
+        print(i)
+        time.sleep(0.5)
+
+def read_queue(queue):
+    # 循环读取队列消息
+    while True:
+        # 队列为空，停止读取
+        if queue.empty():
+            print("---队列已空---")
+            break
+
+        # 读取消息并输出
+        result = queue.get()
+        print(result)
+
+def demo(x,y):
+    d = x + y
+    time.sleep(2)
+    return d
+
+if __name__ == '__main__':
+
+    # 创建消息队列
+    queue = multiprocessing.Queue(10)
+    # 创建子进程
+    p1 = multiprocessing.Process(target=write_queue, args=(queue,))
+    p1.start()
+    # 等待p1写数据进程执行结束后，再往下执行
+    p1.join()
+    p1 = multiprocessing.Process(target=read_queue, args=(queue,))
+    p2 = multiprocessing.Process(target=read_queue, args=(queue,))
+    p3 = multiprocessing.Process(target=read_queue, args=(queue,))
+    p1.start()
+    p2.start()
+    p3.start()

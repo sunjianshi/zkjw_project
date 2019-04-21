@@ -1,3 +1,6 @@
+#!/user/bin/env python
+# -*- coding: utf-8 -*-
+
 import logging.handlers
 
 class Logger(logging.Logger):

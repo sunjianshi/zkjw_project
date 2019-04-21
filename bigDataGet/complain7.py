@@ -1,8 +1,8 @@
-import requests
 from lxml import etree
-from bigDataGet.log_decorator import Logger
-from bigDataGet.connection import conns, redis_set, redis_get
-from bigDataGet.public import get_parse
+from complain.log_decorator import Logger
+from complain.connection import conns, set_url, redis_get
+from complain.public import get_parse
+log = Logger()
 
 def get_url(html):
     h = etree.HTML(html)
@@ -30,15 +30,14 @@ def get_content(html):
     data['car_series'] = ''.join(i.strip() for i in item.xpath("//div[@class='tableBox']/table/tr[1]/td/a[2]/text()"))
     data['car_type'] = item.xpath("normalize-space(//div[@class='tableBox']/table/tr[2]/td[2]/text())")
     data['car_describe'] = item.xpath("normalize-space(//div[@class='articleContent']/p/text())")
-    data['car_question'] = ''.join(i.strip() for i in item.xpath("//div[@class='articleContent']/table/tr[8]/td/p/a/b/text()"))
+    data['car_question'] = ''.join(i.strip() for i in item.xpath("//div[@class='tableBox']/table/tr[last()]/td/p/a//text()"))
     data['start_time'] = item.xpath("normalize-space(//div[@class='tableBox']/table/tr[3]/td[1]/text())")
     status = item.xpath("normalize-space(//div[@class='end']/p/text())")
     if status:
-        data['status'] = status.split("：")[1] if '：' in status else status
+        data['status'] = status.split("：")[1][:99] if '：' in status else status[:99]
     else:
         data['status'] = ''
     data['source'] = '汽车投诉网'
-    print(data)
     return data
 
 def main():
@@ -51,7 +50,7 @@ def main():
                 html = get_parse(url)
                 if html:
                     urls = get_url(html)
-                    print(urls)
+                    log.info(urls)
                     data_list = []
                     url_list = []
                     for url in urls:
@@ -62,10 +61,10 @@ def main():
                                 data_list.append(result)
                                 url_list.append(url)
                         else:
-                            print('此链接已抓去过')
+                            log.info('此链接已抓去过')
                     if data_list and url_list:
                         conns(data_list)
-                        redis_set(url_list)
+                        set_url(url_list)
                         print(data_list)
                     else:
                         x += 1
@@ -73,7 +72,7 @@ def main():
                             break
                     url = get_next_url(html)
                 else:
-                    print('url不能访问：',url)
+                    log.info('url不能访问：',url)
                     break
 
 

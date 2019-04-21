@@ -1,8 +1,8 @@
 import requests
-from lxml import etree
 from urllib.parse import urlencode
-from bigDataGet.log_decorator import loggerInFile
-from bigDataGet.connection import conns,redis_set, redis_get
+from complain.log_decorator import Logger
+from complain.connection import conns,set_url, redis_get
+log = Logger()
 
 def get_link(url,page,stat):
     data = {
@@ -15,9 +15,9 @@ def get_link(url,page,stat):
     response = requests.post(url, headers=headers, data=data)
     pdata = urlencode(data)
     url = url + pdata
-    return response.json(),url
+    return response.json(), url
 
-def get_content(items):
+def get_content(items, stat):
     data_list = []
     for item in items:
         data = {}
@@ -28,29 +28,35 @@ def get_content(items):
         data['car_describe'] = item['content']
         data['car_question'] = item['title'] or item['problem']
         data['start_time'] = item['adddate']
-        data_list.append(data)
-        # print(data)
+        if stat == 1:
+            data['status'] = '未处理'
+        else:
+            data['status'] = '已解决'
+        data['source'] = '中国汽车消费网'
+        if data['tc_numbers']:
+            data_list.append(data)
     return data_list
 
 def main():
     page = 1
     url = "http://tousu.315che.com/che_v3/struts_tousu/page"
-    for stat in range(1, 2):
+    for stat in range(1,3):
         while 1:
-            print(stat)
-            print('page:',page)
+            log.info('page:%d'%page)
             items, url_ = get_link(url, page, stat)
-            print(url_)
+            log.info(url_)
             if redis_get(url_) is None:
-                data_list = get_content(items)
-                if data_list is None:
-                    print('抓取完毕')
+                data_list = get_content(items, stat)
+                if data_list == []:
+                    log.info('抓取完毕')
                     break
                 for data in data_list:
                     if '北京' in data['brand'] or '北汽' in data['brand']:
-                        print('北京or北汽',data)
-                        # conns(data)
-                # redis_set(url_)
+                        s = []
+                        s.append(data)
+                        print('北京or北汽',s)
+                        conns(s)
+                set_url(url_)
             page += 1
 
 

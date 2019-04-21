@@ -1,9 +1,8 @@
 import re
-import requests
 from lxml import etree
-from bigDataGet.log_decorator import Logger
-from bigDataGet.connection import conns, redis_get, redis_set
-from bigDataGet.public import get_parse
+from complain.log_decorator import Logger
+from complain.connection import conns, redis_get, set_url
+from complain.public import get_parse
 log = Logger()
 
 def get_url(html):
@@ -55,6 +54,8 @@ def get_content(html):
         str_list = pattern.findall(str)
         data['tc_numbers'] = str_list[0][1]
         data['car_question'] = str_list[0][0].split('：')[1] if '：' in str_list[0][0] else str_list[0][0]
+        data['status'] = ''.join(i.strip() for i in item.xpath("//div[@class='news-con Fs14 pLR20']/p/strong/text()"))
+        data['source'] = '自主汽车网'
     return data
 
 def main():
@@ -65,23 +66,24 @@ def main():
             html = get_parse(url)
             urls = get_url(html)
             for url in urls:
-                print(url)
-                if redis_get(url) is None: #检查次url是否已获取过
+                if redis_get(url) is None:  #检查次url是否已获取过
                     items = get_parse(url)
                     data = get_content(items)
                     if data:
+                        s = []
                         if '北京' in data['brand'] or '北汽' in data['brand']:
-                            log.info('data2:{}'.format(data))
-                            # conns(list(data))
-                            # redis_set(url)
+                            s.append(data)
+                            conns(s)
+                            print(s)
+                            set_url(url)
                     else:
                         log.info('此链接没有数据：%s'%url)
                 else:
                     next += 1
                     log.info('此链接已抓去过:%s'%url)
-                    if next > 5:
-                        break
+                    break
             url = get_next_url(html)
+            log.info('next url:%s'%url)
         else:
             break
 

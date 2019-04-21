@@ -1,8 +1,9 @@
 import json
 from lxml import etree
-from bigDataGet.public import get_parse
-from bigDataGet.log_decorator import Logger
-from bigDataGet.connection import conns, redis_get, redis_set
+from complain.public import get_parse
+from complain.log_decorator import Logger
+from complain.connection import conns, redis_get, set_url
+from complain import config
 from bigDataGet.IPPool import IPPoolManager
 log = Logger()
 
@@ -66,20 +67,20 @@ def get_content(html):
     print(data_list)
     return data_list, url_list
 
-def main(pare):
+def main():
     # url = "http://www.12365auto.com/zlts/272-0-0-0-0-0_0-0-0-1.shtml"
-    urls = ["http://www.12365auto.com/zlts/272-0-0-0-0-0_0-0-0-1.shtml","http://www.12365auto.com/zlts/373-0-0-0-0-0_0-0-0-1.shtml","http://www.12365auto.com/zlts/371-0-0-0-0-0_0-0-0-1.shtml","http://www.12365auto.com/zlts/389-0-0-0-0-0_0-0-0-1.shtml","http://www.12365auto.com/zlts/11-0-0-0-0-0_0-0-0-1.shtml","http://www.12365auto.com/zlts/18-0-0-0-0-0_0-0-0-1.shtml","http://www.12365auto.com/zlts/305-0-0-0-0-0_0-0-0-1.shtml"]
+    urls = config.CZW_URLS
     for url in urls:
         x = 0
         print('一类抓取完毕')
         while 1:
             if url:
                 print(url)
-                html = get_parse(url, pare)
+                html = get_parse(url)
                 data_list, url_list = get_content(html)
                 if data_list and url_list:
                     conns(data_list)
-                    redis_set(url_list)
+                    set_url(url_list)
                     print(data_list)
                     print(url_list)
                 else:
@@ -93,4 +94,4 @@ def main(pare):
 if __name__ == '__main__':
     pool = IPPoolManager()
     pare = pool.get_ippool()
-    main(pare)
+    main()
